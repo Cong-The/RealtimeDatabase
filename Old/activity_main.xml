@@ -32,5 +32,14 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Delete Data" />
+<<<<<<< Updated upstream:Old/activity_main.xml
+=======
+    <Button
+        android:id="@+id/btn_update_data"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Update Data" />
+>>>>>>> Stashed changes:activity_main.xml
 
 </LinearLayout>
