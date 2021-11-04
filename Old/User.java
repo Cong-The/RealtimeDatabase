@@ -1,5 +1,8 @@
 package com.example.realtimedatabase;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class User  {
     private int id;
     private String name;
@@ -13,6 +16,11 @@ public class User  {
         this.id = id;
         this.name = name;
         this.job = job;
+    }
+
+    public User(String name, String address) {
+        this.name = name;
+        this.address = address;
     }
 
     public Job getJob() {
@@ -55,5 +63,12 @@ public class User  {
                 ", address='" + address + '\'' +
                 ", job=" + job +
                 '}';
+    }
+
+    public Map<String,Object> toMap(){
+        HashMap<String,Object> result = new HashMap<>();
+        result.put("address",address);
+        result.put("name",name);
+        return result;
     }
 }
