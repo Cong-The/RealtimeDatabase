@@ -8,14 +8,20 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.DialogInterface;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -48,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
             User user = new User(id, name);
             onClickAddUser(user);
         });
- //       clickAddAllUser(); // add list user
+        //       clickAddAllUser(); // add list user
         getListUserFromRealtimeDatabase();
 
     }
@@ -59,14 +65,19 @@ public class MainActivity extends AppCompatActivity {
         btnAddUser = findViewById(R.id.btn_AddUser);
 
         rcvUser = findViewById(R.id.rcv_user);
-        LinearLayoutManager  linearLayoutManager = new LinearLayoutManager(this);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         rcvUser.setLayoutManager(linearLayoutManager);
 
-        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(this,DividerItemDecoration.VERTICAL);
+        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         rcvUser.addItemDecoration(dividerItemDecoration);
 
         mListUser = new ArrayList<>();
-        mUserAdapter = new UserAdapter(mListUser);
+        mUserAdapter = new UserAdapter(mListUser, new UserAdapter.IClickListener() {
+            @Override
+            public void onClickUpdateItem(User user) {
+                openDialogUpdateItem(user);
+            }
+        });
 
         rcvUser.setAdapter(mUserAdapter);
 
@@ -87,42 +98,104 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-//    private void clickAddAllUser(){
-//        FirebaseDatabase database = FirebaseDatabase.getInstance();
-//        DatabaseReference myRef = database.getReference("List)User");
-//
-//        List<User> list = new ArrayList<>();
-//        list.add(new User(1,"user1"));
-//        list.add(new User(2,"user2"));
-//        list.add(new User(3,"user3"));
-//
-//        myRef.setValue(list, new DatabaseReference.CompletionListener() {
-//            @Override
-//            public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference ref) {
-//                Toast.makeText(MainActivity.this, "Add user success", Toast.LENGTH_SHORT).show();
-//            }
-//        });
-//    }
+    private void getListUserFromRealtimeDatabase() {
 
-    private void getListUserFromRealtimeDatabase(){
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myRef = database.getReference("User");
-
-        myRef.addValueEventListener(new ValueEventListener() {
+//        // Cach 1
+//        myRef.addValueEventListener(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                if (mListUser != null) {
+//                    mListUser.clear();
+//                }
+//                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+//                    User user = dataSnapshot.getValue(User.class);
+//                    mListUser.add(user);
+//                }
+//                mUserAdapter.notifyDataSetChanged();
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//                Toast.makeText(MainActivity.this, "Get list users faild", Toast.LENGTH_SHORT).show();
+//            }
+//        });
+        myRef.addChildEventListener(new ChildEventListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                for (DataSnapshot dataSnapshot : snapshot.getChildren()){
-                    User user = dataSnapshot.getValue(User.class);
+            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                User user = snapshot.getValue(User.class);
+                if (user != null) {
                     mListUser.add(user);
+                    mUserAdapter.notifyDataSetChanged();
+                }
+
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                User user = snapshot.getValue(User.class);
+                if (user== null || mListUser == null || mListUser.isEmpty()){
+                    return;
+                }
+                for (int i = 0; i< mListUser.size();i++){
+                    if (user.getId()==mListUser.get(i).getId()){
+                        mListUser.set(i,user);
+                    }
                 }
                 mUserAdapter.notifyDataSetChanged();
             }
 
             @Override
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(MainActivity.this,"Get list users faild",Toast.LENGTH_SHORT).show();
+
             }
         });
+
+    }
+
+    private void openDialogUpdateItem(User user){
+          final Dialog dialog = new Dialog(this);
+          dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+          dialog.setContentView(R.layout.layout_dialog_update);
+          Window window = dialog.getWindow();
+          window.setLayout(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.WRAP_CONTENT);
+          window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+          dialog.setCancelable(false);
+
+          EditText edtUpdateName = dialog.findViewById(R.id.edt_update_name);
+          Button btnUpdate = dialog.findViewById(R.id.btn_update);
+          Button   btnCancel = dialog.findViewById(R.id.btn_cancel);
+
+          edtUpdateName.setText(user.getName());
+          btnCancel.setOnClickListener(view -> dialog.dismiss());
+          btnUpdate.setOnClickListener(view -> {
+              FirebaseDatabase database = FirebaseDatabase.getInstance();
+              DatabaseReference myRef = database.getReference("User");
+
+              String NewName = edtUpdateName.getText().toString().trim();
+              user.setName(NewName);
+
+              myRef.child(String.valueOf(user.getId())).updateChildren(user.toMap(), new DatabaseReference.CompletionListener() {
+                  @Override
+                  public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference ref) {
+                      Toast.makeText(MainActivity.this,"Update data success",Toast.LENGTH_SHORT).show();
+                      dialog.dismiss();
+                  }
+              });
+          });
+
+          dialog.show();
     }
 
 
@@ -153,4 +226,4 @@ public class MainActivity extends AppCompatActivity {
 //                .setNegativeButton("Cancel",null)
 //                .show();
 //    }
-}
+    }

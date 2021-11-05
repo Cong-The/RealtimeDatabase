@@ -3,6 +3,7 @@ package com.example.realtimedatabase;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -12,12 +13,17 @@ import java.util.List;
 
 public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder>{
 
-    public UserAdapter(List<User> mListUser) {
+    public UserAdapter(List<User> mListUser,IClickListener listener) {
         this.mListUser = mListUser;
+        this.mIClickListener = listener;
     }
 
     private List<User> mListUser;
+    private IClickListener  mIClickListener;
 
+    public  interface IClickListener{
+        void onClickUpdateItem(User user);
+    }
 
     @NonNull
     @Override
@@ -34,6 +40,8 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
         }
         holder.tvId.setText("ID:"+user.getId());
         holder.tvName.setText("Name:"+user.getName());
+
+        holder.btnUpdate.setOnClickListener(view -> mIClickListener.onClickUpdateItem(user));
     }
 
     @Override
@@ -48,12 +56,14 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
 
         private TextView tvId;
         private TextView tvName;
+        private Button  btnUpdate;
 
         public UserViewHolder(@NonNull View itemView) {
 
             super(itemView);
             tvId = itemView.findViewById(R.id.tv_id);
             tvName = itemView.findViewById(R.id.tv_name);
+            btnUpdate = itemView.findViewById(R.id.btn_update);
         }
     }
 }
